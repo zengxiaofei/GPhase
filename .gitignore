@@ -1,5 +1,5 @@
 __pycache__/
-./*.log
+*.log
 *.pyc
 ./pipeline/*.log
 ../pipeline/*.log
@@ -8,5 +8,5 @@ __pycache__/
 test/*
 .ipynb_checkpoints
 .DS_Store
-
+AGENTS.md
 
