@@ -3,4 +3,10 @@ __pycache__/
 *.pyc
 ./pipeline/*.log
 ../pipeline/*.log
+.codex
+.ipynb*
+test/*
+.ipynb_checkpoints
+.DS_Store
+
 
