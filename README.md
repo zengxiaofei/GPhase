@@ -44,12 +44,13 @@ chromap --preset hic -x index -r asm.fa -q 0 \
     --remove-pcr-duplicates -t 64 --SAM -o map.chromap.sam
 samtools view -@ 64 -bh map.chromap.sam -o map.chromap.bam
 ```
-2. For Pore-C data, we recommend using `poreC_pipeline.sh` as the default workflow. This script is designed for ONT-based concatemer/Pore-C reads and always performs the ONT read mapping internally with minimap2. It then converts the alignments to a Hi-C-like BAM file `map.concatemer2pe.bam` with `concatemer2pe.py`, and that BAM can be passed directly to `gphase pipeline -m`. You can run it directly or through `gphase porec`. The `-o` option specifies the output directory prefix, and the final BAM path is `<prefix>/map.concatemer2pe.bam`.
+2. For contact-pair long reads, including Pore-C and CiFi, we recommend using `contact_pair_pipeline.sh` as the default workflow. This script always performs read mapping internally with minimap2, then converts the alignments to a Hi-C-like BAM file `map.concatemer2pe.bam` with `concatemer2pe.py`. That BAM can be passed directly to `gphase pipeline -m`. You can run it directly or through `gphase contact-pair`. Use `-x map-ont` for Pore-C/ONT reads and `-x map-hifi` for CiFi/HiFi-based contact-pair reads. The `-o` option specifies the output directory prefix, and the final BAM path is `<prefix>/map.concatemer2pe.bam`.
 ```
-/path/to/GPhase/gphase porec \
+/path/to/GPhase/gphase contact-pair \
     asm.fa \
     reads.fq.gz \
-    -o porec \
+    -x map-ont \
+    -o contact_pair \
     -t 32
 ```
 
@@ -77,7 +78,7 @@ The popCNV_pipeline.sh script estimates the copy number of collapsed contigs col
 1. `asm.fa` :  Genome assembly file in FASTA format (unitigs).
 2. `p_utg.gfa` : Assembly graph file in GFA format.
 3. `collapse_num.txt` : File with contig collapse information (from popCNV: popcnv/06.genes.round.cn).
-4. `map.chromap.bam` : pairs/bam file with mapped Hi-C/Pore-C reads. For Pore-C data, the recommended input is `porec/map.concatemer2pe.bam`, where `concatemer2pe` is the `-o` output directory/prefix used by `gphase porec`; for paper reproduction, `PPL/map.PPL.pairs` can also be used.
+4. `map.chromap.bam` : pairs/bam file with mapped Hi-C/Pore-C/CiFi reads. For contact-pair data, the recommended input is `contact_pair/map.concatemer2pe.bam`, where `contact_pair` is the `-o` output directory/prefix used by `gphase contact-pair`; for paper reproduction, `PPL/map.PPL.pairs` can also be used.
 5. `n_chr` : Number of chromosomes.
 6. `n_hap` : Number of haplotypes.
 7. `p` : Prefix for output files.

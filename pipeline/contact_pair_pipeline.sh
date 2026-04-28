@@ -5,7 +5,7 @@ set -euo pipefail
 # Logging function
 ############################################
 log_path=$(pwd)
-log_file="${log_path}/poreC_pipeline.log"
+log_file="${log_path}/contact_pair_pipeline.log"
 
 : > "${log_file}"
 
@@ -17,9 +17,9 @@ LOG_INFO() {
     local msg="${3:-}"
 
     if [[ -z "${target}" ]]; then
-        echo "${time} <poreC_pipeline> [${flag}] ${msg}" >&2
+        echo "${time} <contact_pair_pipeline> [${flag}] ${msg}" >&2
     else
-        echo "${time} <poreC_pipeline> [${flag}] ${msg}" >> "${target}"
+        echo "${time} <contact_pair_pipeline> [${flag}] ${msg}" >> "${target}"
     fi
 }
 
@@ -34,18 +34,19 @@ concatemer2pe_py="${script_dir}/../src/HapHiC/utils/concatemer2pe.py"
 ############################################
 usage() {
     echo "|"
-    echo "|Map ONT concatemer long reads with minimap2 and convert them to a GPhase-ready BAM file"
+    echo "|Map contact-pair long reads (Pore-C/CiFi) with minimap2 and convert them to a GPhase-ready BAM file"
     echo "|Usage: $0 <genome.fa> <reads.fq.gz> [options]"
     echo "|"
     echo "| Required:"
     echo "|  <genome.fa>             Genome FASTA file"
-    echo "|  <reads.fq.gz>           Raw concatemer reads in FASTQ format"
+    echo "|  <reads.fq.gz>           Raw contact-pair reads in FASTQ format"
     echo "|"
     echo "| Optional:"
-    echo "|  -o <prefix>             Output directory/prefix (default: porec)"
+    echo "|  -o <prefix>             Output directory/prefix (default: contact_pair)"
     echo "|                          Final BAM path: <prefix>/map.concatemer2pe.bam"
     echo "|  -t <threads>            Threads (default: 16)"
-    echo "|  -q <mapq>               MAPQ cutoff for concatemer2pe (default: 0)"
+    echo "|  -x <preset>             minimap2 preset [map-ont/map-hifi] (default: map-ont)"
+    echo "|  -q <mapq>               MAPQ cutoff for concatemer2pe (default: 1)"
     echo "|  -i <percent_identity>   Percent identity cutoff (default: 0)"
     echo "|  -l <alignment_length>   Alignment length cutoff (default: 0)"
     echo "|  -h                      Show help and exit"
@@ -56,20 +57,26 @@ usage() {
     echo "|  gphase will convert BAM to preprocessing/map.pairs internally."
     echo "|"
     echo "| Example:"
-    echo "|  bash $0 asm.fa porec.fq.gz -o concatemer2pe -t 32 -q 1"
+    echo "|  bash $0 asm.fa porec.fq.gz -x map-ont -o contact_pair -t 32 -q 1"
+    echo "|  bash $0 asm.fa cifi.fq.gz -x map-hifi -o contact_pair -t 32 -q 1"
     exit 1
 }
 
 ############################################
 # Default optional parameter values
 ############################################
-output_prefix="porec"
+output_prefix="contact_pair"
 threads=16
-mapq=0
+preset="map-ont"
+mapq=1
 percent_identity=0
 alignment_length=0
 genome=""
 fq_file=""
+
+is_non_negative_integer() {
+    [[ "$1" =~ ^[0-9]+$ ]]
+}
 
 ############################################
 # Parse options
@@ -87,10 +94,11 @@ genome="$1"
 fq_file="$2"
 shift 2
 
-while getopts "o:t:q:i:l:h" opt; do
+while getopts "o:t:x:q:i:l:h" opt; do
     case $opt in
         o) output_prefix="$OPTARG" ;;
         t) threads="$OPTARG" ;;
+        x) preset="$OPTARG" ;;
         q) mapq="$OPTARG" ;;
         i) percent_identity="$OPTARG" ;;
         l) alignment_length="$OPTARG" ;;
@@ -113,6 +121,34 @@ if [[ -z "${genome}" || -z "${fq_file}" ]]; then
     LOG_INFO "${log_file}" "error" "ERROR: <genome.fa> and <reads.fq.gz> are required."
     usage
 fi
+
+if ! is_non_negative_integer "${threads}" || [[ "${threads}" -eq 0 ]]; then
+    LOG_INFO "${log_file}" "error" "ERROR: -t <threads> must be a positive integer."
+    exit 1
+fi
+
+if ! is_non_negative_integer "${mapq}"; then
+    LOG_INFO "${log_file}" "error" "ERROR: -q <mapq> must be a non-negative integer."
+    exit 1
+fi
+
+if ! is_non_negative_integer "${alignment_length}"; then
+    LOG_INFO "${log_file}" "error" "ERROR: -l <alignment_length> must be a non-negative integer."
+    exit 1
+fi
+
+if ! awk -v x="${percent_identity}" 'BEGIN { exit !(x >= 0 && x <= 100) }'; then
+    LOG_INFO "${log_file}" "error" "ERROR: -i <percent_identity> must be between 0 and 100."
+    exit 1
+fi
+
+case "${preset}" in
+    map-ont|map-hifi) ;;
+    *)
+        LOG_INFO "${log_file}" "error" "ERROR: unsupported minimap2 preset '${preset}'. Use map-ont or map-hifi."
+        exit 1
+        ;;
+esac
 
 for cmd in python3 samtools awk minimap2; do
     if ! command -v "${cmd}" >/dev/null 2>&1; then
@@ -143,7 +179,7 @@ LOG_INFO "${log_file}" "args" "========== PARAMETERS =========="
 LOG_INFO "${log_file}" "args" "concatemer2pe path : ${concatemer2pe_py}"
 LOG_INFO "${log_file}" "args" "Genome file        : ${genome}"
 LOG_INFO "${log_file}" "args" "FASTQ file         : ${fq_file}"
-LOG_INFO "${log_file}" "args" "minimap2 preset    : map-ont"
+LOG_INFO "${log_file}" "args" "minimap2 preset    : ${preset}"
 LOG_INFO "${log_file}" "args" "Output prefix      : ${output_prefix}"
 LOG_INFO "${log_file}" "args" "Threads            : ${threads}"
 LOG_INFO "${log_file}" "args" "MAPQ cutoff        : ${mapq}"
@@ -157,16 +193,19 @@ LOG_INFO "${log_file}" "info" ""
 ############################################
 mkdir -p "${output_prefix}"
 output_name="$(basename "${output_prefix}")"
+local_genome="${output_prefix}/$(basename "${genome}")"
 unsorted_bam="${output_prefix}/${output_name}.concatemer.unsorted.bam"
 paired_bam="${output_prefix}/map.concatemer2pe.bam"
+
+ln -sfn "$(realpath "${genome}")" "${local_genome}"
 
 ############################################
 # Main pipeline code with logging
 ############################################
-LOG_INFO "${log_file}" "info" "Indexing FASTA for minimap2 -I estimation ..."
-samtools faidx "${genome}" 2>&1 | tee -a "${log_file}"
+LOG_INFO "${log_file}" "info" "Preparing local FASTA index in output directory ..."
+samtools faidx "${local_genome}" 2>&1 | tee -a "${log_file}"
 
-reference_bases=$(awk '{s+=$2} END {print s+0}' "${genome}.fai")
+reference_bases=$(awk '{s+=$2} END {print s+0}' "${local_genome}.fai")
 reference_size_gb=$(awk -v s="${reference_bases}" 'BEGIN {print int((s + 1000000000 - 1) / 1000000000)}')
 minimap2_I=$(( reference_size_gb > 8 ? reference_size_gb : 8 ))
 
@@ -174,7 +213,7 @@ LOG_INFO "${log_file}" "info" "Detected reference bases: ${reference_bases}"
 LOG_INFO "${log_file}" "info" "Rounded reference size (GB): ${reference_size_gb}"
 LOG_INFO "${log_file}" "info" "Using minimap2 -I value: ${minimap2_I}G"
 LOG_INFO "${log_file}" "info" "Running minimap2 and writing unsorted BAM ..."
-minimap2 -t "${threads}" -I "${minimap2_I}G" -ax map-ont "${genome}" "${fq_file}" \
+minimap2 -t "${threads}" -I "${minimap2_I}G" -ax "${preset}" "${local_genome}" "${fq_file}" \
     2>> "${log_file}" | \
     samtools view -@ "${threads}" -b -o "${unsorted_bam}" - \
     2>> "${log_file}"
