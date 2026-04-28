@@ -120,8 +120,8 @@ Usage: $(basename "$0") pipeline -f <fa_file> -g <gfa> -c <collapse_num_file> -m
   --split_gfa_n       <split_gfa_n>              : Number of common neighbors when splitting GFA [2-5], default: 5.
   --chr_pm            <partig_chr_pm>            : Similarity of partig when clustering chr [0.8 <= x < 1], default: 0.95.
   --r_max             <r_max>                    : Maximum value of parameter R during Louvain clustering, default: 3.
-  --t_len_T           <t_len_T>                  : Threshold for filtering the total length of the cluster, default: 7. Without filtering, it is set to 0.
-  --a_len_T           <a_len_T>                  : Threshold for filtering the average Unitig length within a cluster , default: 7. Without filtering, it is set to 0
+  --t_len_T           <t_len_T>                  : Threshold for filtering the total length of the cluster, default: 3. Without filtering, it is set to 0.
+  --a_len_T           <a_len_T>                  : Threshold for filtering the average Unitig length within a cluster , default: 3. Without filtering, it is set to 0
 
 >>> clustering haplotypes Parameters:
   --hap_pm            <partig_hap_pm>            : Similarity of partig when clustering hap [0.6 <= x < 1], default: 0.7 .
