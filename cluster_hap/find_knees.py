@@ -55,7 +55,8 @@ def find_best_knee(csv_file, output_prefix):
 
     yticks = plt.gca().get_yticks()
     new_yticks = list(yticks) + [kl.knee_y]
-    new_yticks.remove(0)
+    new_yticks = [tick for tick in new_yticks if tick != 0]
+
     plt.gca().set_yticks(new_yticks)
     plt.gca().set_yticklabels([f'{tick:.2f}' for tick in new_yticks])
 

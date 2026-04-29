@@ -581,7 +581,11 @@ def process_chromosome(chr_num, args, pwd, partig_file,logger):
                 execute_command(command, f"Failed to filter hic for {chr_num_uncollapse_hic_file}",logger)
                 execute_command(f"sed '1isource,target,links' -i {chr_num_uncollapse_hic_file}", f"Failed to add header to {chr_num_uncollapse_hic_file}",logger)
                 # --- Check chr_num_uncollapse_hic_file ---
-                check_file_exists_and_not_empty(chr_num_uncollapse_hic_file, logger, f"Checking uncollapsed Hi-C links for Chr{chr_num}")
+                try:
+                    check_file_exists_and_not_empty(chr_num_uncollapse_hic_file, logger, f"Checking uncollapsed Hi-C links for Chr{chr_num}")
+                except:
+                    cut_value += cut_value_step
+                    continue
                 
                 chr_num_uncollapse_hic_cut_file = f"{args.output_prefix}.chr{chr_num}.links.uncollapse.c{float(cut_value)}.csv"
                 command = (
