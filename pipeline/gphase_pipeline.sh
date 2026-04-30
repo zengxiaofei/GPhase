@@ -346,7 +346,7 @@ elif [[ "$map_basename" =~ \.bam$ ]]; then
     } > "$tmp_pairs"
 
     # get filtered pairs using scaffold_q
-    run_step "samtools view -@ ${thread} \"$map_file\" | awk -v q=\"${scaffold_q}\" '(\$5+0 >= q && \$7!=\"=\"){print \$1\"\t\"\$3\"\t\"\$4\"\t\"\$7\"\t\"\$8\"\t\"\$5}' >> \"$tmp_pairs\"" "BAM to pairs conversion"
+    run_step "samtools view -@ ${thread} \"$map_file\" | awk -v q=\"${scaffold_q}\" '{if(\$5+0>=q){rnext=(\$7==\"=\"?\$3:\$7);print \$1\"\t\"\$3\"\t\"\$4\"\t\"rnext\"\t\"\$8\"\t\"\$5}}' >> \"$tmp_pairs\"" "BAM to pairs conversion"
     mv "$tmp_pairs" map.pairs
 else
     die "Unsupported map file extension for: $map_basename. Must be .pairs or .bam"
