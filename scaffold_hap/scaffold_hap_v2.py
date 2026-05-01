@@ -249,6 +249,7 @@ def process_one_Contig(file_path):
         lines = f.readlines()
 
         if len(lines) == 2:
+            os.symlink(file_path, file_name) 
             contig_id = lines[1].strip().split()[0]
             with open(final_output_path, 'w', encoding='utf-8') as out:
                 out.write(">INIT\n")
@@ -505,7 +506,6 @@ def process_haplotype(pwd: str, chr_num: int, hap_num: int, args: argparse.Names
         os.chdir(pwd)
 
 def haphic_sort(pwd: str, args: argparse.Namespace,logger) -> bool:
-
     """Perform final merging steps: merge files, run HapHiC sort/build, and final rescue."""
     logger.info(f"Starting final merge steps...")
     script_path = os.path.abspath(sys.path[0])
