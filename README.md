@@ -17,7 +17,7 @@ GPhase leverages an assembly graph and Hi-C/Pore-C data to facilitate genome ass
 To install GPhase, follow these steps:
 ```
 # conda
-git clone https://github.com/panlab-bioinfo/GPhase.git
+git clone --depth 1 https://github.com/panlab-bioinfo/GPhase.git
 cd GPhase
 conda env create -f gphase_environment.yml
 conda activate gphase
@@ -44,7 +44,7 @@ chromap --preset hic -x index -r asm.fa -q 0 \
     --remove-pcr-duplicates -t 64 --SAM -o map.chromap.sam
 samtools view -@ 64 -bh map.chromap.sam -o map.chromap.bam
 ```
-2. For contact-pair long reads, including Pore-C and CiFi, we recommend using `contact_pair_pipeline.sh` as the default workflow. This script always performs read mapping internally with minimap2, then converts the alignments to a Hi-C-like BAM file `map.concatemer2pe.bam` with `concatemer2pe.py`. That BAM can be passed directly to `gphase pipeline -m`. You can run it directly or through `gphase contact-pair`. Use `-x map-ont` for Pore-C/ONT reads and `-x map-hifi` for CiFi/HiFi-based contact-pair reads. The `-o` option specifies the output directory prefix, and the final BAM path is `<prefix>/map.concatemer2pe.bam`.
+2. For contact-pair long reads, including Pore-C and CiFi, we recommend using `contact_pair_pipeline.sh` as the default workflow. This script always performs read mapping internally with minimap2, then converts the alignments to a Hi-C-like BAM file `map.concatemer2pe.bam` with `concatemer2pe.py`. That BAM can be passed directly to `gphase pipeline -m`. You can run it directly or through `gphase contact-pair`. Use `-x map-ont` for Pore-C/ONT reads and `-x map-hifi` for CiFi/HiFi-based contact-pair reads. The `-o` option specifies the output directory prefix, and the final BAM path is `<prefix>/map.concatemer2pe.bam`. For all `contact-pair` parameters, see [doc/README.md#gphase-contact-pair](doc/README.md#gphase-contact-pair).
 ```
 /path/to/GPhase/gphase contact-pair \
     asm.fa \
@@ -54,7 +54,7 @@ samtools view -@ 64 -bh map.chromap.sam -o map.chromap.bam
     -t 32
 ```
 
-The previous Pore-C workflow based on [PPL Toolbox](https://github.com/versarchey/PPL-Toolbox) is still available as a backup workflow. If you need to reproduce the results reported in the paper, you can use this PPL-based process to generate the final pairs file `map.PPL.pairs` and then input it into GPhase.
+The previous Pore-C workflow based on [PPL Toolbox](https://github.com/versarchey/PPL-Toolbox) is still available as a backup workflow. If you need to reproduce the results reported in the paper, you can use this PPL-based process to generate the final pairs file `map.PPL.pairs` and then input it into GPhase. For all `ppl` parameters, see [doc/README.md#gphase-ppl](doc/README.md#gphase-ppl).
 ```
 /path/to/GPhase/gphase ppl -j /path/to/GPhase/bin/PPL-Toolbox.jar \
     -g asm.fa \
@@ -64,7 +64,7 @@ The previous Pore-C workflow based on [PPL Toolbox](https://github.com/versarche
 
 
 # Step2: Estimating of the number of contig collapses based on HiFi data and popCNV
-The popCNV_pipeline.sh script estimates the copy number of collapsed contigs collapse based on HiFi data using the popCNV software. The file used by popCNV for GPhase input is `collapse_num.txt` : popcnv/06.genes.round.cn. For details, see [popCNV](https://github.com/sc-zhang/popCNV)
+The popCNV_pipeline.sh script estimates the copy number of collapsed contigs collapse based on HiFi data using the popCNV software. The file used by popCNV for GPhase input is `collapse_num.txt` : popcnv/06.genes.round.cn. For details, see [popCNV](https://github.com/sc-zhang/popCNV). For all `popcnv` parameters, see [doc/README.md#gphase-popcnv](doc/README.md#gphase-popcnv).
 ```
 /path/to/GPhase/gphase popcnv \
     -f asm.fa \
@@ -93,12 +93,25 @@ The popCNV_pipeline.sh script estimates the copy number of collapsed contigs col
     -p output_prefix \
     --min_len 50
 ```
-For more parameters, please refer to the `gphase pipeline -h`.
+For more parameters, please refer to `gphase pipeline -h` or [doc/README.md#gphase-pipeline](doc/README.md#gphase-pipeline).
+
+Required parameters:
+- `-f` : Genome assembly file in FASTA format (unitigs).
+- `-g` : Assembly graph file in GFA format.
+- `-c` : File with contig collapse information (from popCNV: `popcnv/06.genes.round.cn`).
+- `-m` : Hi-C/Pore-C/Omni-C/CiFi mapping file in `.bam` or `.pairs` format.
+- `--n_chr` : Number of chromosomes.
+- `--n_hap` : Number of haplotypes.
+- `-p` : Prefix for output files. Only the character `.`, numbers, and uppercase/lowercase letters are allowed (`[a-zA-Z0-9.]`).
+
 Below are some of the more important optional parameters:
-- `--cluster_q` : the HiC/Pore-C data mapping quality score threshold (MAPQ) used during phasing is 1 by default. This applies when the input is a BAM file.
-- `--scaffold_q` : the HiC/Pore-C data mapping quality score threshold (MAPQ) used during scaffolding is 0 by default. This applies when the input is a BAM file.
-- `--hap_pm ` : the threshold for the intensity parameter of homologous sequence identification is 0.7 by default. If the heterozygosity of the assembled species is high, 0.6 can be used; if the heterozygosity of the species is low, 0.8 can be used.
-- `-p` : the prefix for the output file should be specified as "only [a-zA-Z0-9.] allowed", meaning only the character ".", numbers, and uppercase and lowercase letters are allowed.
+- `--cluster_q` : Hi-C/Pore-C/Omni-C/CiFi mapping quality score threshold (MAPQ) used during clustering. The default is `1`. This applies when the input is a BAM file.
+- `--scaffold_q` : Hi-C/Pore-C/Omni-C/CiFi mapping quality score threshold (MAPQ) used during scaffolding. The default is `0`. This applies when the input is a BAM file.
+- `--hap_pm` : The threshold for the intensity parameter of homologous sequence identification. The default is `0.7`. If the heterozygosity of the assembled species is high, `0.6` can be used; if the heterozygosity of the species is low, `0.8` can be used.
+- `--chr_pm` : Similarity threshold for chromosome-level partig clustering. The default is `0.95`.
+- `--nor_hic` : Normalization mode for 3C link connections. Choices are `no`, `ratio`, and `length`; default is `ratio`.
+- `--min_len` : Minimum scaffold length in kb in HapHiC sorting. The default is `50`.
+- `--thread` : Number of parallel processes used in scaffolding. The default is `12`.
 
 # Output file
 GPhase will output a folder named gphase_output, which will generate the following four folders in sequence.

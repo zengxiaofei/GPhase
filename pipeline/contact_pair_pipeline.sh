@@ -46,7 +46,7 @@ usage() {
     echo "|                          Final BAM path: <prefix>/map.concatemer2pe.bam"
     echo "|  -t <threads>            Threads (default: 16)"
     echo "|  -x <preset>             minimap2 preset [map-ont/map-hifi] (default: map-ont)"
-    echo "|  -q <mapq>               MAPQ cutoff for concatemer2pe (default: 1)"
+    echo "|  -q <mapq>               MAPQ cutoff for concatemer2pe (default: 0)"
     echo "|  -i <percent_identity>   Percent identity cutoff (default: 0)"
     echo "|  -l <alignment_length>   Alignment length cutoff (default: 0)"
     echo "|  -h                      Show help and exit"
@@ -68,7 +68,7 @@ usage() {
 output_prefix="contact_pair"
 threads=16
 preset="map-ont"
-mapq=1
+mapq=0
 percent_identity=0
 alignment_length=0
 genome=""
