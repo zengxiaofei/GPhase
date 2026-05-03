@@ -43,7 +43,7 @@ usage() {
     echo "|  -s <site>           Restriction enzyme site (default: GATC)"
     echo "|  -o <prefix>         Output prefix (default: PPL)"
     echo "|  -t <threads>        Threads (default: 12)"
-    echo "|  -q <mapq>           MAPQ cutoff (default: 1)"
+    echo "|  -q <mapq>           MAPQ cutoff (default: 0)"
     echo "|  -h                  Show help and exit"
     echo "|"
     echo "|Example:"
@@ -56,8 +56,8 @@ usage() {
 ############################################
 site="^GATC"
 output_prefix="PPL"
-threads=12
-cutoffMapq=1
+threads=16
+cutoffMapq=0
 jar="${default_jar}"
 
 ############################################
