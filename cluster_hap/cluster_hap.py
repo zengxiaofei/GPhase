@@ -427,7 +427,7 @@ def process_chromosome(chr_num, args, pwd, partig_file,logger):
                 for i in range(1, int(args.hap_number) + 1):
                     group_name = f"group{i}"
                     utg_count = len(utg_list)
-                    line = f"{group_name}\t{utg_count}\t" + "\t".join(utg_list) + "\n"
+                    line = f"{group_name}\t{utg_count}\t" + " ".join(utg_list) + "\n"
                     f.write(line)
 
             logger.info(f"Chr{chr_num}: Fallback cluster file generated -> {force_output_file}")
@@ -439,12 +439,35 @@ def process_chromosome(chr_num, args, pwd, partig_file,logger):
             # Process links file
             links_file = f"{args.output_prefix}.chr{chr_num}.links.all.nor.csv"
             links_future = executor.submit(filter_links_by_utgs,str(chr_num)+"_links", utg_rescue_file, args.HiC_file, links_file, logger)
+
+            links_future.result()
+
+            with open(links_file) as f:
+                links_file_count = sum(1 for _ in f)
+
+            if links_file_count < 20:
+                logger.info(
+                    f"Chr{chr_num}: '{links_file}' has only {links_file_count} lines (<20). "
+                    f"Trigger fallback clustering."
+                )
+
+                utg_list = df.iloc[:, 0].astype(str).tolist()
+                force_output_file = f"{args.output_prefix}.reassign.cluster.txt"
+
+                with open(force_output_file, "w") as f:
+                    for i in range(1, int(args.hap_number) + 1):
+                        group_name = f"group{i}"
+                        utg_count = len(utg_list)
+                        line = f"{group_name}\t{utg_count}\t" + " ".join(utg_list) + "\n"
+                        f.write(line)
+
+                logger.info(f"Chr{chr_num}: Fallback cluster file generated -> {force_output_file}")
+                return f"Successfully processed chromosome {chr_num}"
             
             # Process partig file
             partig_file_chr = f"{args.output_prefix}.chr{chr_num}.partig.csv"
             partig_future = executor.submit(filter_links_by_utgs,str(chr_num)+"_partig", utg_rescue_file, origin_partig_file, partig_file_chr, logger)
             
-            links_future.result()
             partig_future.result()
 
         # filter HiC links
@@ -482,7 +505,7 @@ def process_chromosome(chr_num, args, pwd, partig_file,logger):
                 for i in range(1, int(args.hap_number) + 1):
                     group_name = f"group{i}"
                     utg_count = len(utg_list)
-                    line = f"{group_name}\t{utg_count}\t" + "\t".join(utg_list) + "\n"
+                    line = f"{group_name}\t{utg_count}\t" + " ".join(utg_list) + "\n"
                     f.write(line)
 
             logger.info(f"Chr{chr_num}: Fallback cluster file generated -> {force_output_file}")
