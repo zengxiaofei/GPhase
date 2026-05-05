@@ -77,7 +77,7 @@ Script: `pipeline/contact_pair_pipeline.sh`
 
 Usage:
 ```
-gphase contact-pair <genome.fa> <reads.fq.gz> [options]
+gphase contact-pair <genome.fa> <reads1.fq.gz> [reads2.fq.gz ...] [options]
 ```
 
 ### Required parameters
@@ -85,7 +85,7 @@ gphase contact-pair <genome.fa> <reads.fq.gz> [options]
 | Parameter | Description |
 | --- | --- |
 | `<genome.fa>` | Genome FASTA file. |
-| `<reads.fq.gz>` | Raw contact-pair reads in FASTQ format. |
+| `<reads*.fq.gz>` | One or more raw contact-pair reads in FASTQ format. |
 
 ### Optional parameters
 
@@ -94,7 +94,7 @@ gphase contact-pair <genome.fa> <reads.fq.gz> [options]
 | `-o <prefix>` | `contact_pair` | Output directory/prefix. Final BAM path: `<prefix>/map.concatemer2pe.bam`. |
 | `-t <threads>` | `16` | Number of threads. |
 | `-x <preset>` | `map-ont` | minimap2 preset. Choices: `map-ont`, `map-hifi`. |
-| `-q <mapq>` | `1` | MAPQ cutoff for `concatemer2pe.py`. |
+| `-q <mapq>` | `0` | MAPQ cutoff for `concatemer2pe.py`. |
 | `-i <percent_identity>` | `0` | Percent identity cutoff. Valid range: `0-100`. |
 | `-l <alignment_length>` | `0` | Alignment length cutoff. |
 | `-h` | - | Show help and exit. |

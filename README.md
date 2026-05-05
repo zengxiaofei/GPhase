@@ -48,7 +48,7 @@ samtools view -@ 64 -bh map.chromap.sam -o map.chromap.bam
 ```
 /path/to/GPhase/gphase contact-pair \
     asm.fa \
-    reads.fq.gz \
+    reads1.fq.gz reads2.fq.gz \
     -x map-ont \
     -o contact_pair \
     -t 32
@@ -56,7 +56,7 @@ samtools view -@ 64 -bh map.chromap.sam -o map.chromap.bam
 
 The previous Pore-C workflow based on [PPL Toolbox](https://github.com/versarchey/PPL-Toolbox) is still available as a backup workflow. If you need to reproduce the results reported in the paper, you can use this PPL-based process to generate the final pairs file `map.PPL.pairs` and then input it into GPhase. For all `ppl` parameters, see [doc/README.md#gphase-ppl](doc/README.md#gphase-ppl).
 ```
-/path/to/GPhase/gphase ppl -j /path/to/GPhase/bin/PPL-Toolbox.jar \
+/path/to/GPhase/gphase ppl \
     -g asm.fa \
     -f reads.fq.gz \
     -o PPL

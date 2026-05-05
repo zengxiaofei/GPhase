@@ -35,11 +35,11 @@ concatemer2pe_py="${script_dir}/../src/HapHiC/utils/concatemer2pe.py"
 usage() {
     echo "|"
     echo "|Map contact-pair long reads (Pore-C/CiFi) with minimap2 and convert them to a GPhase-ready BAM file"
-    echo "|Usage: $0 <genome.fa> <reads.fq.gz> [options]"
+    echo "|Usage: $0 <genome.fa> <reads1.fq.gz> [reads2.fq.gz ...] [options]"
     echo "|"
     echo "| Required:"
     echo "|  <genome.fa>             Genome FASTA file"
-    echo "|  <reads.fq.gz>           Raw contact-pair reads in FASTQ format"
+    echo "|  <reads*.fq.gz>          Raw contact-pair reads in FASTQ format"
     echo "|"
     echo "| Optional:"
     echo "|  -o <prefix>             Output directory/prefix (default: contact_pair)"
@@ -57,8 +57,8 @@ usage() {
     echo "|  gphase will convert BAM to preprocessing/map.pairs internally."
     echo "|"
     echo "| Example:"
-    echo "|  bash $0 asm.fa porec.fq.gz -x map-ont -o contact_pair -t 32 -q 1"
-    echo "|  bash $0 asm.fa cifi.fq.gz -x map-hifi -o contact_pair -t 32 -q 1"
+    echo "|  bash $0 asm.fa porec.1.fq.gz porec.2.fq.gz -x map-ont -o contact_pair -t 32 -q 1"
+    echo "|  bash $0 asm.fa cifi.1.fq.gz cifi.2.fq.gz -x map-hifi -o contact_pair -t 32 -q 1"
     exit 1
 }
 
@@ -72,7 +72,7 @@ mapq=0
 percent_identity=0
 alignment_length=0
 genome=""
-fq_file=""
+reads_files=()
 
 is_non_negative_integer() {
     [[ "$1" =~ ^[0-9]+$ ]]
@@ -86,13 +86,17 @@ if [[ ${1:-} == "-h" || ${1:-} == "--help" ]]; then
 fi
 
 if [[ $# -lt 2 ]]; then
-    LOG_INFO "${log_file}" "error" "ERROR: <genome.fa> and <reads.fq.gz> are required."
+    LOG_INFO "${log_file}" "error" "ERROR: <genome.fa> and at least one reads FASTQ file are required."
     usage
 fi
 
 genome="$1"
-fq_file="$2"
-shift 2
+shift
+
+while [[ $# -gt 0 && "$1" != -* ]]; do
+    reads_files+=("$1")
+    shift
+done
 
 while getopts "o:t:x:q:i:l:h" opt; do
     case $opt in
@@ -117,8 +121,8 @@ fi
 ############################################
 # Validate parameters
 ############################################
-if [[ -z "${genome}" || -z "${fq_file}" ]]; then
-    LOG_INFO "${log_file}" "error" "ERROR: <genome.fa> and <reads.fq.gz> are required."
+if [[ -z "${genome}" || ${#reads_files[@]} -eq 0 ]]; then
+    LOG_INFO "${log_file}" "error" "ERROR: <genome.fa> and at least one reads FASTQ file are required."
     usage
 fi
 
@@ -167,10 +171,12 @@ if [[ ! -f "${genome}" ]]; then
     exit 1
 fi
 
-if [[ -n "${fq_file}" && ! -f "${fq_file}" ]]; then
-    LOG_INFO "${log_file}" "error" "ERROR: FASTQ file not found: ${fq_file}"
-    exit 1
-fi
+for fq_file in "${reads_files[@]}"; do
+    if [[ ! -f "${fq_file}" ]]; then
+        LOG_INFO "${log_file}" "error" "ERROR: FASTQ file not found: ${fq_file}"
+        exit 1
+    fi
+done
 
 ############################################
 # Print final parameter settings
@@ -178,7 +184,7 @@ fi
 LOG_INFO "${log_file}" "args" "========== PARAMETERS =========="
 LOG_INFO "${log_file}" "args" "concatemer2pe path : ${concatemer2pe_py}"
 LOG_INFO "${log_file}" "args" "Genome file        : ${genome}"
-LOG_INFO "${log_file}" "args" "FASTQ file         : ${fq_file}"
+LOG_INFO "${log_file}" "args" "FASTQ files        : ${reads_files[*]}"
 LOG_INFO "${log_file}" "args" "minimap2 preset    : ${preset}"
 LOG_INFO "${log_file}" "args" "Output prefix      : ${output_prefix}"
 LOG_INFO "${log_file}" "args" "Threads            : ${threads}"
@@ -213,7 +219,7 @@ LOG_INFO "${log_file}" "info" "Detected reference bases: ${reference_bases}"
 LOG_INFO "${log_file}" "info" "Rounded reference size (GB): ${reference_size_gb}"
 LOG_INFO "${log_file}" "info" "Using minimap2 -I value: ${minimap2_I}G"
 LOG_INFO "${log_file}" "info" "Running minimap2 and writing unsorted BAM ..."
-minimap2 -t "${threads}" -I "${minimap2_I}G" -ax "${preset}" "${local_genome}" "${fq_file}" \
+minimap2 -t "${threads}" -I "${minimap2_I}G" -ax "${preset}" "${local_genome}" "${reads_files[@]}" \
     2>> "${log_file}" | \
     samtools view -@ "${threads}" -b -o "${unsorted_bam}" - \
     2>> "${log_file}"
